@@ -156,8 +156,8 @@ func main() {
 		fmt.Println("-i", "input file")
 		fmt.Println("-o", "output file")
 		fmt.Println("-key", "aes encryption key\n")
-		fmt.Println("Example encrypt 123.jpg: \n")
-		fmt.Println("program.exe -e -i 123.jpg -key mykey")
+		fmt.Println("Example encrypt 123.png: \n")
+		fmt.Println("program.exe -e -i 123.png -key mykey")
 	}
 
 	var sameFile bool
