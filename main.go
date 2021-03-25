@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"encoding/hex"
 	"flag"
+	"path/filepath"
+	"strings"
 )
 
 
@@ -130,6 +132,52 @@ func decryptFile(params DecryptOptions) error {
 	}
 }
 
+type DirOptions struct {
+	Directory string
+	Key []byte
+}
+
+func deDirectory(params DirOptions, encrypt1 bool) error {
+	dirToEncrypt := params.Directory
+	key := params.Key
+
+	// iterate files calling encryptFile function
+	files, err := ioutil.ReadDir(dirToEncrypt)
+	if err != nil {
+		return err
+	}
+	for i, file := range files {
+		fmt.Println("File:", i, "/", len(files))
+		filepath := strings.Replace(filepath.Join(dirToEncrypt, file.Name()), "\\", "/", 900)
+		if encrypt1 == false {
+			err = decryptFile(DecryptOptions{
+				Filename: filepath,
+				Key: key,
+				SameFile: true,
+			})
+		} else {
+			err = encryptFile(EncryptOptions{
+				Filename: filepath,
+				Key: key,
+				SameFile: true,
+			})
+		}
+	}
+
+	return nil
+}
+
+func encryptDirectory(params DirOptions) error {
+	e := deDirectory(params, true) // true for encryption
+	return e
+}
+
+func decryptDirectory(params DirOptions) error {
+	e := deDirectory(params, false) // false for decryption
+	return e
+}
+
+
 
 // returns md5 hash in bytes
 // using an md5 hash allows users to use passwords which aren't 32 bytes
@@ -146,18 +194,29 @@ func main() {
 	encrypt := flag.Bool("e", false, "")
 	decrypt := flag.Bool("d", false, "")
 	aesKey := flag.String("key", "", "aes key")
-	inputFile := flag.String("i", "", "input file")
+	input := flag.String("i", "", "input file")
 	outputFile := flag.String("o", "", "outputfile")
+	// directory options
+	cryptDir := flag.Bool("dir", false, "")
+
+
 	flag.Parse()
 	// if user specifies no flags then the program will print some basic documentation
-	if *encrypt == false && *decrypt == false && *aesKey == "" && *inputFile == "" && *outputFile == "" {
+	if *encrypt == false && *decrypt == false && *aesKey == "" && *input == "" && *outputFile == "" {
 		fmt.Println("-e", "encrypt")
 		fmt.Println("-d", "decrypt")
-		fmt.Println("-i", "input file")
+		fmt.Println("-dir", "tells to encrypt or decrypt a directory instead of a file")
+		fmt.Println("-i", "input file or directory")
 		fmt.Println("-o", "output file")
 		fmt.Println("-key", "aes encryption key\n")
 		fmt.Println("Example encrypt 123.png: \n")
 		fmt.Println("program.exe -e -i 123.png -key mykey")
+		//testing
+		err := decryptDirectory(DirOptions{
+			Key: hashMd5([]byte("myKey")),
+			Directory: "./test/",
+		})
+		fmt.Println("result:", err)
 	}
 
 	var sameFile bool
@@ -166,14 +225,14 @@ func main() {
 	} else {
 		sameFile = false
 	}
+	key = hashMd5([]byte(*aesKey))
 
-	if *encrypt == true {
+	if *encrypt == true && *cryptDir == false {
 		//encrypt
-		// key
-		key = hashMd5([]byte(*aesKey))
+
 		// run encrypt
 		err = encryptFile(EncryptOptions{
-			Filename: *inputFile,
+			Filename: *input,
 			Key: key,
 			SameFile: sameFile,
 			NewFilename: *outputFile,
@@ -182,15 +241,13 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("done encryption")
-	} else if *decrypt == true{
+		fmt.Println("\ndone encryption")
+	} else if *decrypt == true && *cryptDir == false {
 		// decrypt file
-		// hash key 
-		key = hashMd5([]byte(*aesKey))
 
 		// run decrypt
 		err = decryptFile(DecryptOptions {
-			Filename: *inputFile,
+			Filename: *input,
 			Key: key,
 			SameFile: sameFile,
 			NewFilename: *outputFile,
@@ -199,7 +256,27 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("done decryption")
+		fmt.Println("\ndone decryption")
+	} else if *encrypt == true && *cryptDir == true {
+		// encrypt directory
+		err = encryptDirectory(DirOptions{
+			Key: key,
+			Directory: *input,
+		})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("\ndone encryption")
+	} else if *decrypt == true && *cryptDir == true {
+		// decrypt directory
+		err = decryptDirectory(DirOptions{
+			Key: key,
+			Directory: *input,
+		})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("\ndone decryption")
 	}
 
 	

@@ -1,0 +1,6 @@
+test/
+/test
+./test
+*.png
+*.jpg
+*.jpeg
