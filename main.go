@@ -225,6 +225,7 @@ func main() {
 	} else {
 		sameFile = false
 	}
+
 	key = hashMd5([]byte(*aesKey))
 
 	if *encrypt == true && *cryptDir == false {
